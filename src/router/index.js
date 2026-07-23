@@ -37,6 +37,21 @@ const router = createRouter({
           name: 'products',
           component: () => import('../views/ProductsView.vue'),
         },
+        {
+          path: 'banners',
+          name: 'banners',
+          component: () => import('../views/BannersView.vue'),
+        },
+        {
+          path: 'merchants',
+          name: 'merchants',
+          component: () => import('../views/MerchantsView.vue'),
+        },
+        {
+          path: 'merchants/:id/skus',
+          name: 'merchant-skus',
+          component: () => import('../views/MerchantSkusView.vue'),
+        },
       ],
     },
   ],

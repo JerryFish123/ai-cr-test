@@ -11,6 +11,8 @@ const nav = [
   { to: '/dashboard', label: '概览' },
   { to: '/members', label: '会员管理' },
   { to: '/products', label: '产品管理' },
+  { to: '/banners', label: 'Banner 管理' },
+  { to: '/merchants', label: '商家管理' },
 ]
 
 const active = computed(() => route.path)
