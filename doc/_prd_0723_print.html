@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>PRD：0723 迭代</title>
+  <style>
+    @page { size: A4; margin: 18mm 16mm; }
+    body {
+      font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+      color: #1a1a1a;
+      line-height: 1.55;
+      font-size: 11.5pt;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 { font-size: 20pt; margin: 0 0 12px; border-bottom: 2px solid #222; padding-bottom: 8px; }
+    h2 { font-size: 14pt; margin: 22px 0 10px; color: #111; }
+    h3 { font-size: 12pt; margin: 16px 0 8px; }
+    p, li { margin: 6px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 10px 0 14px; font-size: 10.5pt; }
+    th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; vertical-align: top; }
+    th { background: #f3f4f6; }
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 9.5pt;
+      background: #f6f7f9;
+    }
+    pre { padding: 10px; border: 1px solid #e5e7eb; white-space: pre-wrap; }
+    .meta { color: #444; margin-bottom: 18px; }
+    .note { color: #555; font-size: 10.5pt; }
+  </style>
+</head>
+<body>
+  <h1>PRD：0723 迭代（后台管理能力增强）</h1>
+  <table class="meta">
+    <tr><th>文档版本</th><td>v1.0</td></tr>
+    <tr><th>迭代代号</th><td>release_0723</td></tr>
+    <tr><th>产品</th><td>Prdemo Admin（ai-cr-test / prdemotest）</td></tr>
+    <tr><th>编写日期</th><td>2026-07-23</td></tr>
+    <tr><th>文档状态</th><td>已定稿（本期开发依据）</td></tr>
+  </table>
+
+  <h2>1. 背景与目标</h2>
+  <h3>1.1 背景</h3>
+  <p>当前后台已具备登录注册、会员管理、产品上架等基础能力。为支撑运营与商家侧业务，需要在不引入完整服务端的前提下（本期仍允许本地 mock / localStorage），补齐运营素材、商家商品体系与管理员个人资料三类能力。</p>
+  <h3>1.2 本期目标</h3>
+  <ol>
+    <li><strong>Banner 图管理 + 本地上传</strong></li>
+    <li><strong>商家管理模块（商家存在性 + SKU）</strong></li>
+    <li><strong>当前登录用户 Profile 修改</strong></li>
+  </ol>
+  <h3>1.3 非目标（本期不做）</h3>
+  <ul>
+    <li>真实后端 API / 数据库落库</li>
+    <li>对象存储（OSS/S3）云端上传</li>
+    <li>前台 C 端商城展示页完整实现（仅后台管理）</li>
+    <li>复杂权限体系（多角色审批流）</li>
+  </ul>
+
+  <h2>2. 范围总览</h2>
+  <table>
+    <tr><th>章节</th><th>改动点</th><th>优先级</th></tr>
+    <tr><td>3</td><td>Banner 图管理与本地上传</td><td>P0</td></tr>
+    <tr><td>4</td><td>商家管理与 SKU</td><td>P0</td></tr>
+    <tr><td>5</td><td>登录用户 Profile 修改</td><td>P0</td></tr>
+  </table>
+  <p>侧边导航建议新增：Banner 管理、商家管理、个人资料（或顶栏入口）。</p>
+
+  <h2>3. 改动点一：Banner 图管理与本地上传</h2>
+  <h3>3.1 需求说明</h3>
+  <p>后台增加 Banner 管理模块，运营可维护首页/活动位 Banner 列表，并支持<strong>从本地选择图片上传</strong>（浏览器本地读取，本期可存 Base64 或 ObjectURL + localStorage 元数据）。</p>
+  <h3>3.2 功能清单</h3>
+  <table>
+    <tr><th>编号</th><th>功能</th><th>说明</th></tr>
+    <tr><td>3.2.1</td><td>Banner 列表</td><td>展示标题、预览图、排序、启用状态、更新时间</td></tr>
+    <tr><td>3.2.2</td><td>新建 Banner</td><td>填写标题、跳转链接（可选）、排序、启用开关</td></tr>
+    <tr><td>3.2.3</td><td>本地上传图片</td><td>选择本地图片文件；校验类型与大小后预览</td></tr>
+    <tr><td>3.2.4</td><td>编辑 Banner</td><td>修改文案、链接、排序、图片、启用状态</td></tr>
+    <tr><td>3.2.5</td><td>删除 Banner</td><td>二次确认后删除</td></tr>
+    <tr><td>3.2.6</td><td>启用/停用</td><td>快速切换是否展示</td></tr>
+  </table>
+  <h3>3.3 字段定义</h3>
+  <table>
+    <tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr>
+    <tr><td>id</td><td>string</td><td>系统生成</td><td>唯一标识</td></tr>
+    <tr><td>title</td><td>string</td><td>是</td><td>Banner 标题，≤ 40 字</td></tr>
+    <tr><td>imageData</td><td>string</td><td>是</td><td>本地上传后的图片数据</td></tr>
+    <tr><td>linkUrl</td><td>string</td><td>否</td><td>点击跳转地址</td></tr>
+    <tr><td>sort</td><td>number</td><td>是</td><td>排序值，越小越靠前</td></tr>
+    <tr><td>enabled</td><td>boolean</td><td>是</td><td>是否启用</td></tr>
+    <tr><td>updatedAt</td><td>number</td><td>系统</td><td>更新时间戳</td></tr>
+  </table>
+  <h3>3.4 本地上传规则</h3>
+  <ul>
+    <li>支持格式：PNG / JPEG / WebP</li>
+    <li>单文件大小：≤ 2MB</li>
+    <li>上传后立即本地预览；刷新后尽量可恢复</li>
+  </ul>
+  <h3>3.5 验收标准</h3>
+  <ol>
+    <li>能新建 Banner 并看到本地上传图片预览</li>
+    <li>能编辑、删除、启用/停用</li>
+    <li>非法类型或超大小时有明确错误提示</li>
+    <li>刷新后数据不丢失（配额允许范围内）</li>
+  </ol>
+
+  <h2>4. 改动点二：商家管理模块（商家 + SKU）</h2>
+  <h3>4.1 需求说明</h3>
+  <p>新增「商家管理」模块，用于管理商家主体是否存在/可用，并维护其下的 SKU 信息。</p>
+  <h3>4.2 商家管理功能</h3>
+  <table>
+    <tr><th>编号</th><th>功能</th><th>说明</th></tr>
+    <tr><td>4.2.1</td><td>商家列表</td><td>名称、联系人、状态、SKU 数量、更新时间</td></tr>
+    <tr><td>4.2.2</td><td>新建商家</td><td>创建商家主体</td></tr>
+    <tr><td>4.2.3</td><td>编辑商家</td><td>修改基础信息与营业状态</td></tr>
+    <tr><td>4.2.4</td><td>停用/启用商家</td><td>停用后其 SKU 不可再上架销售</td></tr>
+    <tr><td>4.2.5</td><td>删除商家</td><td>级联删除 SKU + 二次确认</td></tr>
+  </table>
+  <h3>4.3 商家字段</h3>
+  <table>
+    <tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr>
+    <tr><td>id</td><td>string</td><td>系统</td><td>商家 ID</td></tr>
+    <tr><td>name</td><td>string</td><td>是</td><td>商家名称</td></tr>
+    <tr><td>contact</td><td>string</td><td>否</td><td>联系人</td></tr>
+    <tr><td>phone</td><td>string</td><td>否</td><td>联系电话</td></tr>
+    <tr><td>status</td><td>enum</td><td>是</td><td>active / inactive</td></tr>
+    <tr><td>remark</td><td>string</td><td>否</td><td>备注</td></tr>
+  </table>
+  <h3>4.4 SKU 管理功能</h3>
+  <table>
+    <tr><th>编号</th><th>功能</th><th>说明</th></tr>
+    <tr><td>4.4.1</td><td>SKU 列表</td><td>按商家过滤</td></tr>
+    <tr><td>4.4.2</td><td>新建 SKU</td><td>绑定当前商家</td></tr>
+    <tr><td>4.4.3</td><td>编辑 SKU</td><td>修改价格、库存、名称等</td></tr>
+    <tr><td>4.4.4</td><td>上架/下架 SKU</td><td>控制可售状态</td></tr>
+    <tr><td>4.4.5</td><td>删除 SKU</td><td>二次确认</td></tr>
+  </table>
+  <h3>4.5 SKU 字段</h3>
+  <table>
+    <tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr>
+    <tr><td>id</td><td>string</td><td>系统</td><td>SKU ID</td></tr>
+    <tr><td>merchantId</td><td>string</td><td>是</td><td>所属商家</td></tr>
+    <tr><td>name</td><td>string</td><td>是</td><td>SKU 名称</td></tr>
+    <tr><td>skuCode</td><td>string</td><td>是</td><td>同商家内唯一</td></tr>
+    <tr><td>price</td><td>number</td><td>是</td><td>≥ 0</td></tr>
+    <tr><td>stock</td><td>number</td><td>是</td><td>≥ 0 整数</td></tr>
+    <tr><td>status</td><td>enum</td><td>是</td><td>on / off</td></tr>
+  </table>
+  <h3>4.6 业务规则</h3>
+  <ol>
+    <li>商家 inactive 时，其下 SKU 不可新建为上架</li>
+    <li>同一商家下 skuCode 不可重复</li>
+    <li>删除商家采用级联删除 + 二次确认</li>
+  </ol>
+  <h3>4.7 验收标准</h3>
+  <ol>
+    <li>可创建商家并看到列表</li>
+    <li>可为商家维护 SKU（增删改、上下架）</li>
+    <li>重复 SKU 编码有校验提示</li>
+    <li>停用商家后上架被拦截或自动下架</li>
+  </ol>
+
+  <h2>5. 改动点三：当前登录用户 Profile 修改</h2>
+  <h3>5.1 需求说明</h3>
+  <p>后台增加 Profile 能力，当前登录管理员可修改自己的展示信息与登录密码。</p>
+  <h3>5.2 功能清单</h3>
+  <table>
+    <tr><th>编号</th><th>功能</th><th>说明</th></tr>
+    <tr><td>5.2.1</td><td>查看 Profile</td><td>用户名、角色、展示名、邮箱/手机</td></tr>
+    <tr><td>5.2.2</td><td>修改基础资料</td><td>昵称、邮箱、手机号</td></tr>
+    <tr><td>5.2.3</td><td>修改密码</td><td>校验原密码后设置新密码</td></tr>
+    <tr><td>5.2.4</td><td>保存反馈</td><td>成功/失败提示；顶栏展示名同步</td></tr>
+  </table>
+  <h3>5.3 字段定义</h3>
+  <table>
+    <tr><th>字段</th><th>可改</th><th>说明</th></tr>
+    <tr><td>username</td><td>否</td><td>登录名</td></tr>
+    <tr><td>displayName</td><td>是</td><td>昵称</td></tr>
+    <tr><td>email</td><td>是</td><td>邮箱格式校验</td></tr>
+    <tr><td>phone</td><td>是</td><td>可选</td></tr>
+    <tr><td>password</td><td>是（经原密码）</td><td>≥ 6 位</td></tr>
+  </table>
+  <h3>5.4 交互与校验</h3>
+  <ol>
+    <li>改密需原密码 + 新密码 + 确认</li>
+    <li>原密码错误 / 两次不一致分别提示</li>
+    <li>仅允许修改当前登录账号</li>
+  </ol>
+  <h3>5.5 验收标准</h3>
+  <ol>
+    <li>可打开 Profile 并看到当前账号</li>
+    <li>修改昵称后刷新保留且顶栏同步</li>
+    <li>正确/错误原密码行为符合预期</li>
+    <li>未登录访问跳转登录页</li>
+  </ol>
+
+  <h2>6. 信息架构与路由建议</h2>
+  <table>
+    <tr><th>路由</th><th>页面</th></tr>
+    <tr><td>/banners</td><td>Banner 管理</td></tr>
+    <tr><td>/merchants</td><td>商家列表</td></tr>
+    <tr><td>/merchants/:id/skus</td><td>SKU 管理</td></tr>
+    <tr><td>/profile</td><td>当前用户资料</td></tr>
+  </table>
+
+  <h2>7. 数据与实现约束（本期）</h2>
+  <ul>
+    <li>继续使用前端 Pinia + localStorage mock，暂不写真实后端</li>
+    <li>Banner 图片本地存储，注意浏览器配额</li>
+    <li>与现有会员、产品模块并存</li>
+  </ul>
+
+  <h2>8. 里程碑建议</h2>
+  <table>
+    <tr><th>阶段</th><th>内容</th></tr>
+    <tr><td>M1</td><td>完成第 3 章 Banner</td></tr>
+    <tr><td>M2</td><td>完成第 4 章商家 + SKU</td></tr>
+    <tr><td>M3</td><td>完成第 5 章 Profile</td></tr>
+    <tr><td>M4</td><td>自测与 PR 对照本 PRD</td></tr>
+  </table>
+
+  <h2>9. 附录：PR 描述对照示例</h2>
+  <pre>本期对照 PRD 第 3、4、5 章改造：
+3. Banner 管理与本地上传
+4. 商家管理与 SKU
+5. 登录用户 Profile 修改
+附件：doc/PRD-0723迭代.pdf</pre>
+  <p class="note">— 文档结束 —</p>
+</body>
+</html>
