@@ -2,18 +2,24 @@
 import { computed } from 'vue'
 import { useMembersStore } from '../stores/members'
 import { useProductsStore } from '../stores/products'
+import { useBannersStore } from '../stores/banners'
+import { useMerchantsStore } from '../stores/merchants'
 
 const members = useMembersStore()
 const products = useProductsStore()
+const banners = useBannersStore()
+const merchants = useMerchantsStore()
 
 const stats = computed(() => [
   { label: '会员数', value: members.members.length },
+  { label: '产品已上架', value: products.onShelfCount },
+  { label: '启用 Banner', value: banners.enabledCount },
+  { label: '营业商家', value: merchants.activeMerchantCount },
+  { label: 'SKU 总数', value: merchants.skus.length },
   {
     label: '会员总余额',
     value: `¥${members.members.reduce((s, m) => s + Number(m.balance || 0), 0).toFixed(2)}`,
   },
-  { label: '产品数', value: products.products.length },
-  { label: '已上架', value: products.onShelfCount },
 ])
 </script>
 
@@ -22,7 +28,7 @@ const stats = computed(() => [
     <header class="page-head">
       <div>
         <h1>概览</h1>
-        <p>Vue3 后台演示：登录注册、会员、余额、产品上架（本地存储，无后端）</p>
+        <p>0723：Banner 本地上传、商家/SKU 管理已接入（本地存储，无后端）</p>
       </div>
     </header>
     <div class="stats">
@@ -46,7 +52,7 @@ const stats = computed(() => [
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.9rem;
 }
 
