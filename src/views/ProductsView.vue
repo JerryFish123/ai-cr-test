@@ -1,9 +1,26 @@
 <script setup>
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useProductsStore } from '../stores/products'
 
 const store = useProductsStore()
 const error = ref('')
+const page = ref(1)
+const pageSize = ref(10)
+
+const total = computed(() => store.products.length)
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
+const paginatedProducts = computed(() => {
+  const start = (page.value - 1) * pageSize.value
+  return store.products.slice(start, start + pageSize.value)
+})
+
+watch(totalPages, (tp) => {
+  if (page.value > tp) page.value = tp
+})
+
+function goPage(p) {
+  if (p >= 1 && p <= totalPages.value) page.value = p
+}
 const editing = ref(null)
 const form = reactive({
   id: '',
@@ -36,7 +53,9 @@ function openEdit(product) {
 function submit() {
   error.value = ''
   try {
+    const isCreate = editing.value === 'create'
     store.upsertProduct({ ...form })
+    if (isCreate) page.value = 1
     editing.value = null
   } catch (e) {
     error.value = e.message
@@ -82,7 +101,7 @@ function formatTime(ts) {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="p in store.products" :key="p.id">
+          <tr v-for="p in paginatedProducts" :key="p.id">
             <td>
               <div class="name">{{ p.name }}</div>
               <div class="desc">{{ p.desc || '—' }}</div>
@@ -108,6 +127,39 @@ function formatTime(ts) {
         </tbody>
       </table>
       <div v-if="!store.products.length" class="empty">暂无产品</div>
+      <div v-else-if="totalPages > 1" class="pagination">
+        <span class="pagination-info">
+          共 {{ total }} 条，第 {{ page }} / {{ totalPages }} 页
+        </span>
+        <div class="pagination-actions">
+          <button
+            class="btn sm ghost"
+            type="button"
+            :disabled="page <= 1"
+            @click="goPage(page - 1)"
+          >
+            上一页
+          </button>
+          <button
+            v-for="p in totalPages"
+            :key="p"
+            class="btn sm"
+            :class="{ ghost: p !== page }"
+            type="button"
+            @click="goPage(p)"
+          >
+            {{ p }}
+          </button>
+          <button
+            class="btn sm ghost"
+            type="button"
+            :disabled="page >= totalPages"
+            @click="goPage(page + 1)"
+          >
+            下一页
+          </button>
+        </div>
+      </div>
     </div>
 
     <div v-if="editing" class="modal-mask" @click.self="editing = null">
@@ -163,5 +215,31 @@ h1 {
   color: var(--muted);
   font-size: 0.85rem;
   margin-top: 0.2rem;
+}
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.pagination-info {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.pagination-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.pagination-actions .btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 </style>
