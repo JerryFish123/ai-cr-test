@@ -1,9 +1,34 @@
 <script setup>
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useProductsStore } from '../stores/products'
 
 const store = useProductsStore()
+const pageNum = ref(1)
+const pageSize = ref(10)
 const error = ref('')
+
+const total = computed(() => store.products.length)
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
+const paginatedProducts = computed(() => {
+  const start = (pageNum.value - 1) * pageSize.value
+  return store.products.slice(start, start + pageSize.value)
+})
+
+watch([total, pageSize], () => {
+  if (pageNum.value > totalPages.value) pageNum.value = totalPages.value
+})
+
+function onPageSizeChange() {
+  pageNum.value = 1
+}
+
+function prevPage() {
+  if (pageNum.value > 1) pageNum.value--
+}
+
+function nextPage() {
+  if (pageNum.value < totalPages.value) pageNum.value++
+}
 const editing = ref(null)
 const form = reactive({
   id: '',
@@ -82,7 +107,7 @@ function formatTime(ts) {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="p in store.products" :key="p.id">
+          <tr v-for="p in paginatedProducts" :key="p.id">
             <td>
               <div class="name">{{ p.name }}</div>
               <div class="desc">{{ p.desc || '—' }}</div>
@@ -108,6 +133,29 @@ function formatTime(ts) {
         </tbody>
       </table>
       <div v-if="!store.products.length" class="empty">暂无产品</div>
+      <div v-else class="pagination">
+        <span class="pagination-info">共 {{ total }} 条</span>
+        <label class="pagination-size">
+          每页
+          <select v-model.number="pageSize" @change="onPageSizeChange">
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+          </select>
+        </label>
+        <button class="btn sm ghost" type="button" :disabled="pageNum <= 1" @click="prevPage">
+          上一页
+        </button>
+        <span class="pagination-page">{{ pageNum }} / {{ totalPages }}</span>
+        <button
+          class="btn sm ghost"
+          type="button"
+          :disabled="pageNum >= totalPages"
+          @click="nextPage"
+        >
+          下一页
+        </button>
+      </div>
     </div>
 
     <div v-if="editing" class="modal-mask" @click.self="editing = null">
@@ -163,5 +211,36 @@ h1 {
   color: var(--muted);
   font-size: 0.85rem;
   margin-top: 0.2rem;
+}
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.pagination-info,
+.pagination-page {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.pagination-size {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.pagination-size select {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 0.25rem 0.4rem;
 }
 </style>
